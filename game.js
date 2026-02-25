@@ -1,4 +1,4 @@
-// Modern Snake — Canvas port with mobile touch controls and localStorage fallback for rounds
+// Modern Snake — Canvas port with mobile touch controls and Game Over touch support
 "use strict";
 
 const SCREEN_WIDTH = 1000;
@@ -26,11 +26,8 @@ const COLORS = {
   STEM_BROWN: "rgb(90,55,30)"
 };
 
-const FPS = 60;
-
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d", { alpha: true });
-
 canvas.width = SCREEN_WIDTH;
 canvas.height = SCREEN_HEIGHT;
 
@@ -42,11 +39,7 @@ function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 function lerp(a,b,t){ return a + (b-a)*t; }
 function randf(a,b){ return a + Math.random()*(b-a); }
 function tau(){ return Math.PI*2; }
-
-function gridToPixel(g){
-  return [g[0]*CELL_SIZE + Math.floor(CELL_SIZE/2), g[1]*CELL_SIZE + Math.floor(CELL_SIZE/2)];
-}
-
+function gridToPixel(g){ return [g[0]*CELL_SIZE + Math.floor(CELL_SIZE/2), g[1]*CELL_SIZE + Math.floor(CELL_SIZE/2)]; }
 function vecEq(a,b){ return a[0]===b[0] && a[1]===b[1]; }
 
 class Particle {
@@ -137,9 +130,7 @@ class Food {
 }
 
 class Snake {
-  constructor(){
-    this.reset();
-  }
+  constructor(){ this.reset(); }
   reset(){
     let cx = Math.floor(GRID_W/2);
     let cy = Math.floor(GRID_H/2);
@@ -186,19 +177,10 @@ class Snake {
     }
     return moved;
   }
-  grow(n=1){
-    for(let i=0;i<n;i++){
-      let last = this.segments[this.segments.length-1];
-      this.segments.push([last[0], last[1]]);
-    }
-  }
+  grow(n=1){ for(let i=0;i<n;i++){ let last = this.segments[this.segments.length-1]; this.segments.push([last[0], last[1]]); } }
   head_grid(){ return this.segments[0]; }
-  occupies(pos){
-    return this.segments.some(s => s[0]===pos[0] && s[1]===pos[1]);
-  }
-  segmentPixels(){
-    return this.segments.map(gridToPixel);
-  }
+  occupies(pos){ return this.segments.some(s => s[0]===pos[0] && s[1]===pos[1]); }
+  segmentPixels(){ return this.segments.map(gridToPixel); }
   draw(ctx){
     let segPixels = this.segmentPixels();
     let n = segPixels.length;
@@ -206,9 +188,7 @@ class Snake {
     let max_r = Math.floor(CELL_SIZE*0.7);
     let min_r = Math.floor(CELL_SIZE*0.35);
     let radii = [];
-    for(let i=0;i<n;i++){
-      radii.push(Math.floor(lerp(max_r, min_r, i / Math.max(1, n-1))));
-    }
+    for(let i=0;i<n;i++) radii.push(Math.floor(lerp(max_r, min_r, i / Math.max(1, n-1))));
     for(let i=n-1;i>=0;i--){
       let [x,y] = segPixels[i];
       let r = radii[i];
@@ -271,6 +251,7 @@ class Game {
     this.btnNoRect = null;
     this._setupTouchControls();
     window.addEventListener("keydown", (e)=> this.onKeyDown(e));
+    canvas.addEventListener("pointerdown", (e)=> this.onCanvasPointerDown(e));
   }
 
   async loadRoundsCount(){
@@ -279,22 +260,15 @@ class Game {
       if(r.ok){
         let j = await r.json();
         this.rounds_count = Array.isArray(j) ? j.length : 0;
-      } else {
-        // if server not present, try localStorage
-        this.rounds_count = this._loadLocalRounds().length;
-      }
+      } else this.rounds_count = this._loadLocalRounds().length;
     }catch(e){
       this.rounds_count = this._loadLocalRounds().length;
     }
   }
 
   _loadLocalRounds(){
-    try{
-      const raw = localStorage.getItem("modern_snake_rounds");
-      return raw ? JSON.parse(raw) : [];
-    }catch(e){ return []; }
+    try{ const raw = localStorage.getItem("modern_snake_rounds"); return raw ? JSON.parse(raw) : []; }catch(e){ return []; }
   }
-
   _saveLocalRound(entry){
     try{
       const key = "modern_snake_rounds";
@@ -314,7 +288,6 @@ class Game {
       high_score: this.high_score,
       reason: this.death_reason || this.snake.death_reason
     };
-    // Try server POST; on failure fallback to localStorage
     try{
       fetch("/save_round", {
         method: "POST",
@@ -326,12 +299,8 @@ class Game {
       }).then(j => {
         if(j && j.total) this.rounds_count = j.total;
         this.saved_current_round = true;
-      }).catch(() => {
-        this._saveLocalRound(entry);
-      });
-    }catch(e){
-      this._saveLocalRound(entry);
-    }
+      }).catch(() => { this._saveLocalRound(entry); });
+    }catch(e){ this._saveLocalRound(entry); }
   }
 
   reset(){
@@ -363,12 +332,7 @@ class Game {
     this.score += 1;
     this.high_score = Math.max(this.high_score, this.score);
     let [fx,fy] = gridToPixel(this.food.grid_pos);
-    let colorMap = {
-      apple: COLORS.APPLE_RED,
-      banana: COLORS.BANANA_YELLOW,
-      orange: COLORS.ORANGE,
-      cherry: COLORS.CHERRY
-    };
+    let colorMap = { apple: COLORS.APPLE_RED, banana: COLORS.BANANA_YELLOW, orange: COLORS.ORANGE, cherry: COLORS.CHERRY };
     let col = colorMap[this.food.type] || COLORS.NEON_C;
     this.spawnEatParticles(fx,fy,col);
     this.spawnFood();
@@ -401,9 +365,7 @@ class Game {
       return;
     }
 
-    if(moved && vecEq(this.snake.head_grid(), this.food.grid_pos)){
-      this.eatFood();
-    }
+    if(moved && vecEq(this.snake.head_grid(), this.food.grid_pos)) this.eatFood();
 
     for(let p of this.particles) p.update(dt);
     this.particles = this.particles.filter(p => p.life > 0.01);
@@ -413,21 +375,13 @@ class Game {
 
   onKeyDown(e){
     if(this.game_over){
-      if(e.key === "y" || e.key === "Enter"){
-        this.reset();
-      } else if(e.key === "n" || e.key === "Escape" || e.key.toLowerCase()==="q"){
-        // Closing tab not always allowed; do nothing
-      }
+      if(e.key === "y" || e.key === "Enter") this.reset();
       return;
     }
     if(e.key === " "){
       if(this.show_start) this.show_start = false;
       else this.paused = !this.paused;
-    } else if(e.key === "r" || e.key === "R"){
-      this.reset();
-    } else if(e.key === "Escape" || e.key.toLowerCase()==="q"){
-      // nothing
-    }
+    } else if(e.key === "r" || e.key === "R") this.reset();
   }
 
   _setupTouchControls(){
@@ -440,12 +394,9 @@ class Game {
     for(let m of map){
       const el = document.getElementById(m.id);
       if(!el) continue;
-      // pointerdown / pointerup to support touch/mouse/pen
       el.addEventListener("pointerdown", (ev)=>{
         ev.preventDefault();
-        // immediate direction set (tap)
         this.snake.set_direction(m.dir);
-        // hold behavior
         keys[m.key] = true;
       });
       const upfn = (ev)=>{
@@ -457,7 +408,6 @@ class Game {
       el.addEventListener("pointerleave", upfn);
     }
 
-    // accelerate
     const accel = document.getElementById("accelerate");
     if(accel){
       accel.addEventListener("pointerdown", (e)=>{ e.preventDefault(); keys["Shift"] = true; });
@@ -465,31 +415,26 @@ class Game {
       accel.addEventListener("pointerup", up);
       accel.addEventListener("pointercancel", up);
       accel.addEventListener("pointerleave", up);
-      // also support tap to briefly boost
-      accel.addEventListener("click", (e)=>{ e.preventDefault(); /* no-op; pointerdown handles hold */ });
     }
 
-    // pause
     const pause = document.getElementById("pause");
-    if(pause){
-      pause.addEventListener("click", (e)=>{ e.preventDefault(); if(this.show_start) this.show_start = false; else this.paused = !this.paused; });
-    }
-    // restart
+    if(pause) pause.addEventListener("click", (e)=>{ e.preventDefault(); if(this.show_start) this.show_start = false; else this.paused = !this.paused; });
+
     const restart = document.getElementById("restart");
-    if(restart){
-      restart.addEventListener("click", (e)=>{ e.preventDefault(); this.reset(); });
-    }
+    if(restart) restart.addEventListener("click", (e)=>{ e.preventDefault(); this.reset(); });
   }
 
-  onMouseDown(e){
+  onCanvasPointerDown(e){
+    // For Game Over overlay buttons: map pointer position to canvas coords and check Yes/No rects
     if(!this.game_over) return;
-    let rect = canvas.getBoundingClientRect();
-    let mx = e.clientX - rect.left;
-    let my = e.clientY - rect.top;
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const my = (e.clientY - rect.top) * (canvas.height / rect.height);
     if(this.btnYesRect && pointInRect(mx,my,this.btnYesRect)){
       this.reset();
     } else if(this.btnNoRect && pointInRect(mx,my,this.btnNoRect)){
-      // nothing
+      // do nothing (can't reliably close mobile tab). Could redirect or show message.
+      // We'll simply keep game over overlay.
     }
   }
 
@@ -552,7 +497,7 @@ class Game {
     ctx.fillText("Modern Snake", SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - 30);
     ctx.fillStyle = "rgba(200,200,200,0.95)";
     ctx.font = "28px Segoe UI, Arial";
-    ctx.fillText("Press Space to start", SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 40);
+    ctx.fillText("Tap a control or press Space to start", SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 40);
     ctx.restore();
   }
 
@@ -593,20 +538,21 @@ class Game {
     ctx.fillStyle = "rgba(240,240,240,0.98)";
     ctx.fillText("Play again?", SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 20);
 
-    let btn_w = 140, btn_h = 56, gap = 36;
+    // Buttons (larger for mobile)
+    let btn_w = 160, btn_h = 64, gap = 36;
     let cx = SCREEN_WIDTH/2, cy = SCREEN_HEIGHT/2 + 110;
     let yesRect = { x: cx - btn_w - gap/2, y: cy - btn_h/2, w: btn_w, h: btn_h };
     let noRect  = { x: cx + gap/2, y: cy - btn_h/2, w: btn_w, h: btn_h };
     this.btnYesRect = yesRect; this.btnNoRect = noRect;
 
     ctx.fillStyle = "rgba(28,150,130,0.95)";
-    roundRect(ctx, yesRect.x, yesRect.y, yesRect.w, yesRect.h, 12, true, false);
+    roundRect(ctx, yesRect.x, yesRect.y, yesRect.w, yesRect.h, 16, true, false);
     ctx.fillStyle = "white";
-    ctx.font = "28px Segoe UI, Arial";
+    ctx.font = "30px Segoe UI, Arial";
     ctx.fillText("Yes", yesRect.x + yesRect.w/2, yesRect.y + yesRect.h/2 + 10);
 
     ctx.fillStyle = "rgba(60,60,60,0.9)";
-    roundRect(ctx, noRect.x, noRect.y, noRect.w, noRect.h, 12, true, false);
+    roundRect(ctx, noRect.x, noRect.y, noRect.w, noRect.h, 16, true, false);
     ctx.fillStyle = "white";
     ctx.fillText("No", noRect.x + noRect.w/2, noRect.y + noRect.h/2 + 10);
 
@@ -615,7 +561,6 @@ class Game {
 }
 
 function pointInRect(px,py,r){ return px>=r.x && px<=r.x+r.w && py>=r.y && py<=r.y+r.h; }
-
 function roundRect(ctx,x,y,w,h,r, fill, stroke){
   if (typeof r === 'undefined') r = 5;
   ctx.beginPath();
@@ -629,8 +574,8 @@ function roundRect(ctx,x,y,w,h,r, fill, stroke){
   if(stroke) ctx.stroke();
 }
 
+// Instantiate and run
 let game = new Game();
-
 let last = performance.now();
 function loop(now){
   let dt = Math.min(0.05, (now - last)/1000);
@@ -646,6 +591,5 @@ function drawGradientBg(ctx, topCol, bottomCol){
   let grad = ctx.createLinearGradient(0,0,0,SCREEN_HEIGHT);
   grad.addColorStop(0, `rgb(${topCol[0]},${topCol[1]},${topCol[2]})`);
   grad.addColorStop(1, `rgb(${bottomCol[0]},${bottomCol[1]},${bottomCol[2]})`);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
+  ctx.fillStyle = grad; ctx.fillRect(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
 }
