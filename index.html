@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Modern Snake — Web</title>
+  <title>Modern Snake — Web (Mobile)</title>
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
@@ -14,25 +14,23 @@
       <div id="score">Score: 0</div>
       <div id="best">Best: 0</div>
     </div>
-    <div id="controls">
-      <div>Arrows / WASD — Move • Shift — Speed</div>
-      <div>Space — Pause/Start • R — Restart • Q/Esc — Quit</div>
-    </div>
   </div>
 
   <!-- Touch controls overlay (mobile) -->
   <div id="touch-controls" aria-hidden="false">
     <div id="dpad">
       <button class="dbtn" id="up" aria-label="Up">▲</button>
+
       <div class="row">
-        <button class="dbtn" id="left" aria-label="Left">◀</button>
-        <button class="dbtn" id="down" aria-label="Down">▼</button>
-        <button class="dbtn" id="right" aria-label="Right">▶</button>
+        <button class="dbtn wide" id="left" aria-label="Left">◀</button>
+        <button class="dbtn wide" id="right" aria-label="Right">▶</button>
       </div>
+
+      <button class="dbtn" id="down" aria-label="Down">▼</button>
     </div>
 
     <div id="action-buttons">
-      <button class="actbtn" id="accelerate" aria-label="Accelerate">Shift</button>
+      <button class="actbtn" id="accelerate" aria-label="Accelerate">Boost</button>
       <button class="actbtn" id="pause" aria-label="Pause">⏸</button>
       <button class="actbtn" id="restart" aria-label="Restart">⟲</button>
     </div>
