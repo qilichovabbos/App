@@ -1,0 +1,66 @@
+:root{
+  --bg-top: #0a0c1e;
+  --bg-bottom: #060a16;
+  --neon-a: rgb(84,255,214);
+  --neon-b: rgb(124,89,255);
+  --neon-c: rgb(255,130,160);
+  --panel: rgba(18,20,30,0.9);
+  --ui-text: #ebebeb;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;font-family: "Segoe UI", Roboto, Arial, sans-serif}
+html,body{height:100%}
+body{
+  background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px;
+  user-select:none;
+}
+
+canvas{
+  display:block;
+  border-radius:12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6), inset 0 0 60px rgba(124,89,255,0.04);
+  background: transparent;
+}
+
+/* UI panels */
+#ui{
+  position: absolute;
+  width:1000px;
+  max-width: calc(100% - 20px);
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events:none;
+}
+#panel{
+  width: 260px;
+  padding: 12px;
+  background: rgba(18,20,30,0.85);
+  border-radius: 12px;
+  color: var(--ui-text);
+  pointer-events:auto;
+  margin-left:12px;
+}
+#score{font-size:20px;font-weight:600}
+#best{font-size:13px;color:#bdbdbd;margin-top:6px}
+
+#controls{
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width:320px;
+  padding: 14px;
+  background: rgba(18,20,30,0.85);
+  border-radius: 12px;
+  color:#dcdcdc;
+  font-size:14px;
+  text-align:left;
+  pointer-events:auto;
+}
+
+/* Overlay texts (drawn on canvas) */
+/* Buttons: (we draw them on canvas; style only fallback) */
