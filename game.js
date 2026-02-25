@@ -1,4 +1,4 @@
-// Modern Snake — Canvas port (keeps behavior of original Pygame version)
+// Modern Snake — Canvas port with mobile touch controls and localStorage fallback for rounds
 "use strict";
 
 const SCREEN_WIDTH = 1000;
@@ -75,7 +75,6 @@ class Particle {
     ctx.fill();
   }
   colorToRgba(col, a){
-    // col like "rgb(r,g,b)"
     if(col.startsWith("rgb")){
       let nums = col.replace(/[^\d,]/g,"").split(",").map(n=>+n);
       return `rgba(${nums[0]},${nums[1]},${nums[2]},${a.toFixed(3)})`;
@@ -103,51 +102,35 @@ class Food {
     else if(this.type==="cherry") this._draw_cherry(ctx,x,y,r);
   }
   _draw_apple(ctx,x,y,r){
-    // glow
     let g = ctx.createRadialGradient(x,y, r*0.2, x,y, r*3);
     g.addColorStop(0, "rgba(220,35,45,0.35)");
     g.addColorStop(1, "rgba(220,35,45,0)");
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(x,y,r*3,0,Math.PI*2); ctx.fill();
-    // body
-    ctx.fillStyle = COLORS.APPLE_RED;
-    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-    // stem
-    ctx.fillStyle = COLORS.STEM_BROWN;
-    ctx.fillRect(x-2,y-r-6,4,8);
-    // leaf
-    ctx.fillStyle = COLORS.LEAF_GREEN;
-    ctx.beginPath(); ctx.moveTo(x+4,y-r-4); ctx.lineTo(x+10,y-r-10); ctx.lineTo(x+4,y-r-2); ctx.fill();
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,r*3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = COLORS.APPLE_RED; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = COLORS.STEM_BROWN; ctx.fillRect(x-2,y-r-6,4,8);
+    ctx.fillStyle = COLORS.LEAF_GREEN; ctx.beginPath(); ctx.moveTo(x+4,y-r-4); ctx.lineTo(x+10,y-r-10); ctx.lineTo(x+4,y-r-2); ctx.fill();
   }
   _draw_banana(ctx,x,y,r){
-    ctx.save();
-    ctx.translate(x,y);
-    ctx.rotate(-0.4);
+    ctx.save(); ctx.translate(x,y); ctx.rotate(-0.4);
     ctx.fillStyle = COLORS.BANANA_YELLOW;
-    ctx.beginPath();
-    ctx.ellipse(0,0,r*1.5,r*0.6,0,0,Math.PI*2);
-    ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0,0,r*1.5,r*0.6,0,0,Math.PI*2); ctx.fill();
     ctx.restore();
   }
   _draw_orange(ctx,x,y,r){
-    // glow
     let g = ctx.createRadialGradient(x,y, r*0.2, x,y, r*3);
     g.addColorStop(0, "rgba(255,140,50,0.3)");
     g.addColorStop(1, "rgba(255,140,50,0)");
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,r*3,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = COLORS.ORANGE;
-    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = COLORS.ORANGE; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
   }
   _draw_cherry(ctx,x,y,r){
     let r_small = Math.max(6, Math.floor(r/2));
     let cx1 = x - r_small/1.6;
     let cx2 = x + r_small/1.6;
     let cy = y + r_small/4;
-    ctx.fillStyle = COLORS.CHERRY;
-    ctx.beginPath(); ctx.arc(cx1,cy,r_small,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = COLORS.CHERRY; ctx.beginPath(); ctx.arc(cx1,cy,r_small,0,Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(cx2,cy,r_small,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle = COLORS.STEM_BROWN;
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = COLORS.STEM_BROWN; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(cx1, cy - r_small); ctx.lineTo(x, y - r - 6); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(cx2, cy - r_small); ctx.lineTo(x, y - r - 6); ctx.stroke();
   }
@@ -189,11 +172,9 @@ class Snake {
         moved = true;
         break;
       }
-      // insert new head
       this.segments.unshift(new_head);
       this.segments.pop();
       moved = true;
-      // self collision
       for(let i=1;i<this.segments.length;i++){
         if(this.segments[i][0]===new_head[0] && this.segments[i][1]===new_head[1]){
           this.alive = false;
@@ -228,25 +209,16 @@ class Snake {
     for(let i=0;i<n;i++){
       radii.push(Math.floor(lerp(max_r, min_r, i / Math.max(1, n-1))));
     }
-    // draw from tail to head
     for(let i=n-1;i>=0;i--){
       let [x,y] = segPixels[i];
       let r = radii[i];
-      // body color gradient towards NEON_A
       ctx.fillStyle = `rgb(${Math.floor(lerp(110,84, 1 - i/(n-1||1)))}, ${Math.floor(lerp(190,255, 1 - i/(n-1||1)))}, ${Math.floor(lerp(75,214, 1 - i/(n-1||1)))})`;
       ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-      // highlight
-      ctx.fillStyle = "rgba(255,255,255,0.12)";
-      ctx.beginPath(); ctx.arc(x - r*0.18, y - r*0.18, Math.max(1, Math.floor(r/3)), 0, Math.PI*2); ctx.fill();
-      // underside shadow
-      ctx.fillStyle = "rgba(0,0,0,0.08)";
-      ctx.beginPath(); ctx.arc(x + r*0.25, y + r*0.25, Math.max(1, Math.floor(r/2)), 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.12)"; ctx.beginPath(); ctx.arc(x - r*0.18, y - r*0.18, Math.max(1, Math.floor(r/3)), 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "rgba(0,0,0,0.08)"; ctx.beginPath(); ctx.arc(x + r*0.25, y + r*0.25, Math.max(1, Math.floor(r/2)), 0, Math.PI*2); ctx.fill();
     }
-
-    // head with eyes
     let [head_x, head_y] = segPixels[0];
     let head_r = radii[0];
-    // eyes
     ctx.fillStyle = "#ffffff";
     ctx.beginPath(); ctx.arc(head_x - head_r*0.25, head_y - head_r*0.35, Math.max(1, Math.floor(head_r/5)), 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(head_x + head_r*0.25, head_y - head_r*0.35, Math.max(1, Math.floor(head_r/5)), 0, Math.PI*2); ctx.fill();
@@ -297,8 +269,7 @@ class Game {
     this.round_start_time = new Date();
     this.btnYesRect = null;
     this.btnNoRect = null;
-    // mouse handling for overlay buttons
-    canvas.addEventListener("mousedown", (e)=> this.onMouseDown(e));
+    this._setupTouchControls();
     window.addEventListener("keydown", (e)=> this.onKeyDown(e));
   }
 
@@ -308,8 +279,31 @@ class Game {
       if(r.ok){
         let j = await r.json();
         this.rounds_count = Array.isArray(j) ? j.length : 0;
+      } else {
+        // if server not present, try localStorage
+        this.rounds_count = this._loadLocalRounds().length;
       }
-    }catch(e){}
+    }catch(e){
+      this.rounds_count = this._loadLocalRounds().length;
+    }
+  }
+
+  _loadLocalRounds(){
+    try{
+      const raw = localStorage.getItem("modern_snake_rounds");
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+
+  _saveLocalRound(entry){
+    try{
+      const key = "modern_snake_rounds";
+      const arr = this._loadLocalRounds();
+      arr.push(entry);
+      localStorage.setItem(key, JSON.stringify(arr));
+      this.rounds_count = arr.length;
+      this.saved_current_round = true;
+    }catch(e){ console.warn("local save failed", e); }
   }
 
   recordRound(){
@@ -320,15 +314,24 @@ class Game {
       high_score: this.high_score,
       reason: this.death_reason || this.snake.death_reason
     };
-    // POST to backend
-    fetch("/save_round", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(entry)
-    }).then(resp => resp.json()).then(j => {
-      if(j && j.total) this.rounds_count = j.total;
-    }).catch(()=>{});
-    this.saved_current_round = true;
+    // Try server POST; on failure fallback to localStorage
+    try{
+      fetch("/save_round", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry)
+      }).then(resp => {
+        if(!resp.ok) throw new Error("no server");
+        return resp.json();
+      }).then(j => {
+        if(j && j.total) this.rounds_count = j.total;
+        this.saved_current_round = true;
+      }).catch(() => {
+        this._saveLocalRound(entry);
+      });
+    }catch(e){
+      this._saveLocalRound(entry);
+    }
   }
 
   reset(){
@@ -375,7 +378,6 @@ class Game {
     if(this.show_start){ this.bg_grid_offset += dt*10; return; }
     if(this.paused || this.game_over) return;
 
-    // input -> set direction
     if(keys["ArrowUp"] || keys["w"] || keys["W"]) this.snake.set_direction([0,-1]);
     if(keys["ArrowDown"] || keys["s"] || keys["S"]) this.snake.set_direction([0,1]);
     if(keys["ArrowLeft"] || keys["a"] || keys["A"]) this.snake.set_direction([-1,0]);
@@ -387,7 +389,6 @@ class Game {
     if(!this.snake.alive){
       this.game_over = true;
       this.death_reason = this.snake.death_reason;
-      // spawn death burst
       try{
         let [hx,hy] = gridToPixel(this.snake.head_grid());
         for(let i=0;i<30;i++){
@@ -404,7 +405,6 @@ class Game {
       this.eatFood();
     }
 
-    // update particles
     for(let p of this.particles) p.update(dt);
     this.particles = this.particles.filter(p => p.life > 0.01);
     this.food.update(dt);
@@ -416,7 +416,7 @@ class Game {
       if(e.key === "y" || e.key === "Enter"){
         this.reset();
       } else if(e.key === "n" || e.key === "Escape" || e.key.toLowerCase()==="q"){
-        window.close?.(); // not reliably allowed in browsers; user can close tab
+        // Closing tab not always allowed; do nothing
       }
       return;
     }
@@ -426,7 +426,58 @@ class Game {
     } else if(e.key === "r" || e.key === "R"){
       this.reset();
     } else if(e.key === "Escape" || e.key.toLowerCase()==="q"){
-      window.close?.();
+      // nothing
+    }
+  }
+
+  _setupTouchControls(){
+    const map = [
+      {id: "up", key: "ArrowUp", dir: [0,-1]},
+      {id: "down", key: "ArrowDown", dir: [0,1]},
+      {id: "left", key: "ArrowLeft", dir: [-1,0]},
+      {id: "right", key: "ArrowRight", dir: [1,0]}
+    ];
+    for(let m of map){
+      const el = document.getElementById(m.id);
+      if(!el) continue;
+      // pointerdown / pointerup to support touch/mouse/pen
+      el.addEventListener("pointerdown", (ev)=>{
+        ev.preventDefault();
+        // immediate direction set (tap)
+        this.snake.set_direction(m.dir);
+        // hold behavior
+        keys[m.key] = true;
+      });
+      const upfn = (ev)=>{
+        ev.preventDefault();
+        keys[m.key] = false;
+      };
+      el.addEventListener("pointerup", upfn);
+      el.addEventListener("pointercancel", upfn);
+      el.addEventListener("pointerleave", upfn);
+    }
+
+    // accelerate
+    const accel = document.getElementById("accelerate");
+    if(accel){
+      accel.addEventListener("pointerdown", (e)=>{ e.preventDefault(); keys["Shift"] = true; });
+      const up = (e)=>{ e.preventDefault(); keys["Shift"] = false; };
+      accel.addEventListener("pointerup", up);
+      accel.addEventListener("pointercancel", up);
+      accel.addEventListener("pointerleave", up);
+      // also support tap to briefly boost
+      accel.addEventListener("click", (e)=>{ e.preventDefault(); /* no-op; pointerdown handles hold */ });
+    }
+
+    // pause
+    const pause = document.getElementById("pause");
+    if(pause){
+      pause.addEventListener("click", (e)=>{ e.preventDefault(); if(this.show_start) this.show_start = false; else this.paused = !this.paused; });
+    }
+    // restart
+    const restart = document.getElementById("restart");
+    if(restart){
+      restart.addEventListener("click", (e)=>{ e.preventDefault(); this.reset(); });
     }
   }
 
@@ -438,12 +489,11 @@ class Game {
     if(this.btnYesRect && pointInRect(mx,my,this.btnYesRect)){
       this.reset();
     } else if(this.btnNoRect && pointInRect(mx,my,this.btnNoRect)){
-      window.close?.();
+      // nothing
     }
   }
 
   draw(ctx){
-    // background gradient
     drawGradientBg(ctx, COLORS.BG_TOP, COLORS.BG_BOTTOM);
     this.drawAnimatedGrid(ctx);
     this.drawVignette(ctx);
@@ -470,15 +520,12 @@ class Game {
       ctx.stroke();
     }
     ctx.restore();
-    // center glow
     let cx = SCREEN_WIDTH/2, cy = SCREEN_HEIGHT/2;
     let glow = ctx.createRadialGradient(cx,cy,40,cx,cy,400);
     glow.addColorStop(0, "rgba(124,89,255,0.08)");
     glow.addColorStop(1, "rgba(124,89,255,0)");
     ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(cx,cy,400,0,Math.PI*2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(cx,cy,400,0,Math.PI*2); ctx.fill();
   }
 
   drawVignette(ctx){
@@ -491,10 +538,8 @@ class Game {
   }
 
   drawUI(ctx){
-    // Update HTML UI
     document.getElementById("score").textContent = `Score: ${this.score}`;
     document.getElementById("best").textContent = `Best: ${this.high_score}`;
-    // bottom-right controls handled by static HTML
   }
 
   drawStartOverlay(ctx){
@@ -548,21 +593,18 @@ class Game {
     ctx.fillStyle = "rgba(240,240,240,0.98)";
     ctx.fillText("Play again?", SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 20);
 
-    // Buttons
     let btn_w = 140, btn_h = 56, gap = 36;
     let cx = SCREEN_WIDTH/2, cy = SCREEN_HEIGHT/2 + 110;
     let yesRect = { x: cx - btn_w - gap/2, y: cy - btn_h/2, w: btn_w, h: btn_h };
     let noRect  = { x: cx + gap/2, y: cy - btn_h/2, w: btn_w, h: btn_h };
     this.btnYesRect = yesRect; this.btnNoRect = noRect;
 
-    // draw yes
     ctx.fillStyle = "rgba(28,150,130,0.95)";
     roundRect(ctx, yesRect.x, yesRect.y, yesRect.w, yesRect.h, 12, true, false);
     ctx.fillStyle = "white";
     ctx.font = "28px Segoe UI, Arial";
     ctx.fillText("Yes", yesRect.x + yesRect.w/2, yesRect.y + yesRect.h/2 + 10);
 
-    // no
     ctx.fillStyle = "rgba(60,60,60,0.9)";
     roundRect(ctx, noRect.x, noRect.y, noRect.w, noRect.h, 12, true, false);
     ctx.fillStyle = "white";
@@ -587,10 +629,8 @@ function roundRect(ctx,x,y,w,h,r, fill, stroke){
   if(stroke) ctx.stroke();
 }
 
-// Instantiate game
 let game = new Game();
 
-// Main loop
 let last = performance.now();
 function loop(now){
   let dt = Math.min(0.05, (now - last)/1000);
@@ -602,7 +642,6 @@ function loop(now){
 }
 requestAnimationFrame(loop);
 
-// Simple gradient draw helper
 function drawGradientBg(ctx, topCol, bottomCol){
   let grad = ctx.createLinearGradient(0,0,0,SCREEN_HEIGHT);
   grad.addColorStop(0, `rgb(${topCol[0]},${topCol[1]},${topCol[2]})`);
