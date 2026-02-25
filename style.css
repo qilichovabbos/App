@@ -6,7 +6,7 @@
   --neon-c: rgb(255,130,160);
   --panel: rgba(18,20,30,0.9);
   --ui-text: #ebebeb;
-  --touch-bg: rgba(10,12,18,0.55);
+  --touch-bg: rgba(10,12,18,0.65);
   --touch-press: rgba(255,255,255,0.12);
 }
 
@@ -55,25 +55,12 @@ canvas{
 #score{font-size:20px;font-weight:600}
 #best{font-size:13px;color:#bdbdbd;margin-top:6px}
 
-#controls{
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  width:320px;
-  padding: 14px;
-  background: rgba(18,20,30,0.85);
-  border-radius: 12px;
-  color:#dcdcdc;
-  font-size:14px;
-  text-align:left;
-  pointer-events:auto;
-}
-
-/* Touch controls */
+/* Touch controls - centered at bottom */
 #touch-controls{
   position: fixed;
-  left: 12px;
+  left: 50%;
   bottom: 12px;
+  transform: translateX(-50%);
   display: flex;
   gap: 18px;
   align-items: flex-end;
@@ -85,43 +72,59 @@ canvas{
 /* D-pad */
 #dpad{
   background: var(--touch-bg);
-  border-radius: 14px;
-  padding: 10px;
+  border-radius: 18px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  align-items: center;
   touch-action: none;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
 }
+
+/* row for left/right */
 #dpad .row{
   display:flex;
-  gap:6px;
-  justify-content: center;
+  gap:12px;
+  justify-content:center;
+  width: 100%;
 }
+
+/* Direction buttons */
 .dbtn{
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
+  width: 76px;
+  height: 76px;
+  border-radius: 16px;
   border: none;
   background: rgba(255,255,255,0.03);
   color: white;
-  font-size: 20px;
+  font-size: 26px;
   display:flex;
   align-items:center;
   justify-content:center;
   transition: transform 0.08s ease, background 0.08s;
   -webkit-user-select:none;
+  touch-action: none;
+}
+.dbtn.wide{
+  width: 120px;
+  height: 86px;
+  font-size: 34px;
+  border-radius: 18px;
 }
 .dbtn:active { transform: scale(0.97); background: var(--touch-press); }
 
+/* Action buttons column */
 #action-buttons{
   display:flex;
   flex-direction: column;
   gap: 10px;
   align-items: center;
+  justify-content: center;
 }
 .actbtn{
-  width: 84px;
-  height: 48px;
+  width: 92px;
+  height: 52px;
   border-radius: 12px;
   border: none;
   background: rgba(255,255,255,0.06);
@@ -129,19 +132,17 @@ canvas{
   font-size: 14px;
   padding: 6px 10px;
   transition: transform 0.08s, background 0.08s;
+  -webkit-user-select:none;
+  touch-action: none;
 }
 .actbtn:active{ transform: translateY(2px); background: var(--touch-press); }
 
-/* Hide touch controls on large screens if you want — but we leave visible for convenience */
-@media (min-width: 900px){
-  /* keep visible but slightly transparent on desktop */
-  #touch-controls { opacity: 0.9; }
-}
-@media (max-width: 520px){
-  /* mobile: scale controls a bit smaller */
-  #dpad .dbtn{ width:56px;height:56px;font-size:18px }
-  .actbtn{ width:72px;height:44px;font-size:13px }
-  #touch-controls{ gap:12px; left: 8px; bottom: 8px }
+/* Slight responsive adjustments for smaller phones */
+@media (max-width: 440px){
+  .dbtn{ width:64px;height:64px;font-size:22px }
+  .dbtn.wide{ width:104px;height:72px;font-size:28px }
+  .actbtn{ width:84px;height:46px;font-size:13px }
+  #touch-controls{ gap:12px; bottom:8px }
 }
 
 /* Prevent text selection on buttons */
