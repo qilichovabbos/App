@@ -6,6 +6,8 @@
   --neon-c: rgb(255,130,160);
   --panel: rgba(18,20,30,0.9);
   --ui-text: #ebebeb;
+  --touch-bg: rgba(10,12,18,0.55);
+  --touch-press: rgba(255,255,255,0.12);
 }
 
 *{box-sizing:border-box;margin:0;padding:0;font-family: "Segoe UI", Roboto, Arial, sans-serif}
@@ -17,13 +19,18 @@ body{
   justify-content:center;
   padding:10px;
   user-select:none;
+  -webkit-user-select:none;
+  touch-action: manipulation;
 }
 
+/* Canvas */
 canvas{
   display:block;
   border-radius:12px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.6), inset 0 0 60px rgba(124,89,255,0.04);
   background: transparent;
+  max-width: 100%;
+  height: auto;
 }
 
 /* UI panels */
@@ -62,5 +69,80 @@ canvas{
   pointer-events:auto;
 }
 
-/* Overlay texts (drawn on canvas) */
-/* Buttons: (we draw them on canvas; style only fallback) */
+/* Touch controls */
+#touch-controls{
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 18px;
+  align-items: flex-end;
+  pointer-events: auto;
+  z-index: 60;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* D-pad */
+#dpad{
+  background: var(--touch-bg);
+  border-radius: 14px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  touch-action: none;
+}
+#dpad .row{
+  display:flex;
+  gap:6px;
+  justify-content: center;
+}
+.dbtn{
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  border: none;
+  background: rgba(255,255,255,0.03);
+  color: white;
+  font-size: 20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition: transform 0.08s ease, background 0.08s;
+  -webkit-user-select:none;
+}
+.dbtn:active { transform: scale(0.97); background: var(--touch-press); }
+
+#action-buttons{
+  display:flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+.actbtn{
+  width: 84px;
+  height: 48px;
+  border-radius: 12px;
+  border: none;
+  background: rgba(255,255,255,0.06);
+  color: white;
+  font-size: 14px;
+  padding: 6px 10px;
+  transition: transform 0.08s, background 0.08s;
+}
+.actbtn:active{ transform: translateY(2px); background: var(--touch-press); }
+
+/* Hide touch controls on large screens if you want — but we leave visible for convenience */
+@media (min-width: 900px){
+  /* keep visible but slightly transparent on desktop */
+  #touch-controls { opacity: 0.9; }
+}
+@media (max-width: 520px){
+  /* mobile: scale controls a bit smaller */
+  #dpad .dbtn{ width:56px;height:56px;font-size:18px }
+  .actbtn{ width:72px;height:44px;font-size:13px }
+  #touch-controls{ gap:12px; left: 8px; bottom: 8px }
+}
+
+/* Prevent text selection on buttons */
+button{ -webkit-touch-callout:none; -webkit-user-select:none; -ms-user-select:none; user-select:none; }
